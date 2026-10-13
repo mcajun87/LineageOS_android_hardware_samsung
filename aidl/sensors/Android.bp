@@ -53,7 +53,15 @@ cc_binary {
         "android.hardware.sensors@2.X-multihal",
         "android.hardware.sensors@aidl-multihal",
         "libaidlcommonsupport",
+        "libandroid.hardware.sensors.SamsungProps",
     ],
+}
+
+sysprop_library {
+    name: "android.hardware.sensors.SamsungProps",
+    srcs: ["sensors.sysprop"],
+    property_owner: "Vendor",
+    vendor: true,
 }
 
 cc_library_shared {

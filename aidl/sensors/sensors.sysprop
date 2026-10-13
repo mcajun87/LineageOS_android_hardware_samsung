@@ -1,0 +1,14 @@
+# sensors.sysprop
+# module becomes static class (Java) / namespace (C++) for serving API
+module: "android.sensors.samsung.SensorsHalProperties"
+owner: Vendor
+
+# device orientation sensor workaround
+prop {
+    prop_name: "ro.vendor.sensors.device_orientation_workaround"
+    type: Enum
+    scope: Internal
+    access: Readonly
+    enum_values: "swap_upright_when_folded"
+    api_name: "device_orientation_workaround"
+}
