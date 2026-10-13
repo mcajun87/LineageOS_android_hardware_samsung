@@ -8,6 +8,8 @@
 
 #include <HalProxyAidl.h>
 
+#include <string>
+
 namespace aidl {
 namespace android {
 namespace hardware {
@@ -15,8 +17,14 @@ namespace sensors {
 namespace implementation {
 
 class HalProxySamsung : public HalProxyAidl {
+  public:
+    HalProxySamsung();
+
+  private:
     ndk::ScopedAStatus getSensorsList(
             std::vector<::aidl::android::hardware::sensors::SensorInfo>* _aidl_return) override;
+
+    bool mHideDeviceOrientation = false;
 };
 
 }  // namespace implementation
