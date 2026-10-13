@@ -9,6 +9,6 @@ prop {
     type: Enum
     scope: Internal
     access: Readonly
-    enum_values: "swap_upright_when_folded"
+    enum_values: "hide|swap_upright_when_folded"
     api_name: "device_orientation_workaround"
 }
