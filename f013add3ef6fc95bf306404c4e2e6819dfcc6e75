@@ -16,6 +16,24 @@
       "message": "One question before merging this. The way it looks, this soong_config should be set for all QCOM devices. Is this correct?",
       "revId": "f013add3ef6fc95bf306404c4e2e6819dfcc6e75",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2752d076_c7935735",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 14
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25276
+      },
+      "writtenOn": "2026-10-17T21:14:50Z",
+      "side": 1,
+      "message": "Apparently this whole thing is not an issue on Exynos devices, the QS tile torch strength just works out of the box there, hence the assumption that this only affects Qcom Samsungs. However, I don\u0027t think anyone besides me bothered to test it. I can only speak for my sm7125 and sm7325 devices, which all need this to have torch strength levels working.",
+      "parentUuid": "b225e380_08bdfc61",
+      "revId": "f013add3ef6fc95bf306404c4e2e6819dfcc6e75",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
