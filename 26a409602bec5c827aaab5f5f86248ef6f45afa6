@@ -1,6 +1,23 @@
 {
   "comments": [
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "3b9d511e_f980bd9b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2026-10-18T11:00:02Z",
+      "side": 1,
+      "message": "Also move eSimSwitcher change out of the chain, since that one is nowhere ready and unrelated..",
+      "revId": "26a409602bec5c827aaab5f5f86248ef6f45afa6",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "4d16b131_e3e2f320",
