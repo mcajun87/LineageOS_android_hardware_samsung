@@ -18,6 +18,24 @@
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "08fe43ea_d9f5f0f4",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29914
+      },
+      "writtenOn": "2026-10-18T11:07:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3b9d511e_f980bd9b",
+      "revId": "26a409602bec5c827aaab5f5f86248ef6f45afa6",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "4d16b131_e3e2f320",
@@ -31,6 +49,30 @@
       "writtenOn": "2026-10-18T10:52:47Z",
       "side": 1,
       "message": "I would flip this condition, that would make the code nicer, especially after the next change.",
+      "range": {
+        "startLine": 26,
+        "startChar": 0,
+        "endLine": 26,
+        "endChar": 2
+      },
+      "revId": "26a409602bec5c827aaab5f5f86248ef6f45afa6",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e11d273f_53bbbb73",
+        "filename": "aidl/sensors/HalProxySamsung.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 29914
+      },
+      "writtenOn": "2026-10-18T11:07:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4d16b131_e3e2f320",
       "range": {
         "startLine": 26,
         "startChar": 0,
