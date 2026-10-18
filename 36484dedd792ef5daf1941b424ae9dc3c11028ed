@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bce42fc9_dd28f39d",
+        "filename": "aidl/sensors/HalProxySamsung.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2026-10-18T13:56:09Z",
+      "side": 1,
+      "message": "use sysprops like we have for fingerprint",
+      "range": {
+        "startLine": 25,
+        "startChar": 42,
+        "endLine": 25,
+        "endChar": 89
+      },
+      "revId": "36484dedd792ef5daf1941b424ae9dc3c11028ed",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
