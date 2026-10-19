@@ -94,6 +94,30 @@
       },
       "revId": "36484dedd792ef5daf1941b424ae9dc3c11028ed",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e17bec87_201f7315",
+        "filename": "aidl/sensors/HalProxySamsung.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 29914
+      },
+      "writtenOn": "2026-10-19T10:08:10Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ced88a90_3716ea9a",
+      "range": {
+        "startLine": 25,
+        "startChar": 42,
+        "endLine": 25,
+        "endChar": 89
+      },
+      "revId": "36484dedd792ef5daf1941b424ae9dc3c11028ed",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
