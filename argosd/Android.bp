@@ -1,0 +1,25 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+cc_binary {
+    name: "argosd",
+    srcs: [
+        "argos.c",
+        "main.c",
+    ],
+    local_include_dirs: [
+        "include",
+    ],
+    shared_libs: [
+        "liblog",
+    ],
+    cflags: [
+        "-Wall",
+        "-Wextra",
+    ],
+    init_rc: [
+        "argosd.rc",
+    ],
+}
