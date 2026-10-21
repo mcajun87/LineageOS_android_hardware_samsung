@@ -34,6 +34,24 @@
       "parentUuid": "7a90d22a_ef117dcc",
       "revId": "f013add3ef6fc95bf306404c4e2e6819dfcc6e75",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1df96f2d_8e2181d5",
+        "filename": "packages/EsimSwitcher/Android.bp",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29914
+      },
+      "writtenOn": "2026-10-21T15:43:40Z",
+      "side": 0,
+      "message": "Done now",
+      "parentUuid": "b3e21976_5ea50406",
+      "revId": "f013add3ef6fc95bf306404c4e2e6819dfcc6e75",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
