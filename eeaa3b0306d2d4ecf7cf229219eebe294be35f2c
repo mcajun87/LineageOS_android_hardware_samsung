@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "812a0d1d_3a5493ed",
+        "filename": "packages/EsimSwitcher/Android.bp",
+        "patchSetId": 2
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2026-10-21T11:25:44Z",
+      "side": 1,
+      "message": "SamsungEsimSwitcher",
+      "range": {
+        "startLine": 7,
+        "startChar": 11,
+        "endLine": 7,
+        "endChar": 23
+      },
+      "revId": "eeaa3b0306d2d4ecf7cf229219eebe294be35f2c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}

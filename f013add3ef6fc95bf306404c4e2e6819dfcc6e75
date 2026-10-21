@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7a90d22a_ef117dcc",
+        "filename": "packages/EsimSwitcher/Android.bp",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2026-10-21T11:25:44Z",
+      "side": 0,
+      "message": "packages/eSimSwitcher",
+      "revId": "f013add3ef6fc95bf306404c4e2e6819dfcc6e75",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
