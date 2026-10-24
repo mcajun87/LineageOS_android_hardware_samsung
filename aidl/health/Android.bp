@@ -48,3 +48,22 @@ cc_binary {
     init_rc: ["android.hardware.health-service.samsung-recovery.rc"],
     overrides: ["charger.recovery"],
 }
+
+cc_binary {
+    name: "samsung_health_debug",
+    vendor: true,
+    srcs: [
+        "debug/samsung_health_debug.cpp",
+    ],
+    shared_libs: [
+        "android.hardware.health-V5-ndk",
+        "libbase",
+        "libbinder_ndk",
+        "libsamsunghealth",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+}
+
