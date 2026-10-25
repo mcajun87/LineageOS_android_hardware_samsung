@@ -34,6 +34,24 @@
       "parentUuid": "ad8af4da_35a413b7",
       "revId": "1e1565c9fdc55f3abbd2e246ca118abff28ecf9e",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "814f7f4a_3ce5cd22",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 10
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 34512
+      },
+      "writtenOn": "2026-10-25T20:31:13Z",
+      "side": 1,
+      "message": "no, Atakan.",
+      "parentUuid": "1a2d9a60_d07ff11b",
+      "revId": "1e1565c9fdc55f3abbd2e246ca118abff28ecf9e",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
