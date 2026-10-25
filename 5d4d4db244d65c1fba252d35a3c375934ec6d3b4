@@ -16,6 +16,24 @@
       "message": "don\u0027t forget to update lineage/crowdin.",
       "revId": "5d4d4db244d65c1fba252d35a3c375934ec6d3b4",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d0f81949_0aa566cb",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 34512
+      },
+      "writtenOn": "2026-10-25T19:35:50Z",
+      "side": 1,
+      "message": "just to clarify do you mean LineageOS\u0027s crowdin or two separate things?",
+      "parentUuid": "e6fbf20b_101785d5",
+      "revId": "5d4d4db244d65c1fba252d35a3c375934ec6d3b4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
