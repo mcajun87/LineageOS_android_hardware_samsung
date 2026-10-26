@@ -9,11 +9,9 @@
 
 #include <aidl/android/hardware/vibrator/BnVibrator.h>
 
-#ifdef VIBRATOR_SUPPORTS_DURATION_AMPLITUDE_CONTROL
-#define DURATION_AMPLITUDE_LIGHT 0.65
-#define DURATION_AMPLITUDE_MEDIUM 0.8
-#define DURATION_AMPLITUDE_STRONG 1
-#endif
+constexpr float DURATION_AMPLITUDE_LIGHT = 0.65f;
+constexpr float DURATION_AMPLITUDE_MEDIUM = 0.8f;
+constexpr float DURATION_AMPLITUDE_STRONG = 1.0f;
 
 #define COMMON_MAX_COMPOSE_DELAY (1000)
 #define COMMON_MAX_COMPOSE_EFFECT (32)
@@ -79,10 +77,9 @@ class Vibrator : public BnVibrator {
     static float strengthToAmplitude(EffectStrength strength, ndk::ScopedAStatus* status);
     int cirrusEffectId(int id);
 
-#ifdef VIBRATOR_SUPPORTS_DURATION_AMPLITUDE_CONTROL
     static float durationAmplitude(float amplitude);
-    float mDurationAmplitude;
-#endif
+    float mDurationAmplitude{DURATION_AMPLITUDE_STRONG};
+    bool mSupportsDurationAmplitude{false};
 
     std::shared_ptr<HwApi> mHwApi;
     bool mEnabled{false};
