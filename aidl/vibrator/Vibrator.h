@@ -1,20 +1,13 @@
 /*
- * Copyright (C) 2021-2026 The LineageOS Project
- *
+ * SPDX-FileCopyrightText: 2026 The LineageOS Project
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #pragma once
 
+#include "HwApi.h"
+
 #include <aidl/android/hardware/vibrator/BnVibrator.h>
-
-#define INTENSITY_MIN 1000
-#define INTENSITY_MAX 10000
-#define INTENSITY_DEFAULT INTENSITY_MAX
-
-#define AMPLITUDE_LIGHT 0.25
-#define AMPLITUDE_MEDIUM 0.5
-#define AMPLITUDE_STRONG 1
 
 #ifdef VIBRATOR_SUPPORTS_DURATION_AMPLITUDE_CONTROL
 #define DURATION_AMPLITUDE_LIGHT 0.65
@@ -22,27 +15,8 @@
 #define DURATION_AMPLITUDE_STRONG 1
 #endif
 
-#define VIBRATOR_TIMEOUT_PATH "/sys/class/timed_output/vibrator/enable"
-#define VIBRATOR_INTENSITY_PATH "/sys/class/timed_output/vibrator/intensity"
-#define VIBRATOR_CP_TRIGGER_PATH "/sys/class/timed_output/vibrator/cp_trigger_index"
-#define VIBRATOR_FUNCTIONS_PATH "/sys/class/vib_info_class/vib_support_info/functions"
-
 #define COMMON_MAX_COMPOSE_DELAY (1000)
 #define COMMON_MAX_COMPOSE_EFFECT (32)
-
-// include/linux/vibrator/sec_vibrator_inputff.h
-struct common_inputff_effect {
-    int type;
-    int effect_id;
-    int scale;
-    int duration;
-    int frequency;
-};
-struct common_inputff_effects {
-    struct common_inputff_effect effects[COMMON_MAX_COMPOSE_EFFECT];
-    int num_of_effects;
-    int repeat = 0;  // always 0
-};
 
 using ::aidl::android::hardware::vibrator::Braking;
 using ::aidl::android::hardware::vibrator::CompositeEffect;
@@ -64,7 +38,7 @@ namespace vibrator {
 
 class Vibrator : public BnVibrator {
   public:
-    Vibrator();
+    Vibrator(std::shared_ptr<HwApi> hwApi = nullptr);
     ndk::ScopedAStatus getCapabilities(int32_t* _aidl_return) override;
     ndk::ScopedAStatus off() override;
     ndk::ScopedAStatus on(int32_t timeoutMs,
@@ -97,6 +71,8 @@ class Vibrator : public BnVibrator {
     ndk::ScopedAStatus composePwle(const std::vector<PrimitivePwle>& composite,
                                    const std::shared_ptr<IVibratorCallback>& callback) override;
 
+    std::shared_ptr<HwApi> getHwApi() const { return mHwApi; }
+
   private:
     ndk::ScopedAStatus activate(uint32_t ms);
     ndk::ScopedAStatus uploadFFEffect(std::vector<int16_t> effectData, int timeoutMs);
@@ -108,6 +84,7 @@ class Vibrator : public BnVibrator {
     float mDurationAmplitude;
 #endif
 
+    std::shared_ptr<HwApi> mHwApi;
     bool mEnabled{false};
     bool mExternalControl{false};
     std::mutex mMutex;
@@ -118,8 +95,6 @@ class Vibrator : public BnVibrator {
     bool mSupportsPrimitives{false};
     bool mHasTimedOutIntensity;
     bool mHasTimedOutEffect;
-
-    int mVibratorFd{-1};
 };
 
 }  // namespace vibrator

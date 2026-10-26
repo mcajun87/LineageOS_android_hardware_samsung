@@ -13,6 +13,7 @@ cc_binary {
         default: [],
     }),
     srcs: [
+        "HwApi.cpp",
         "Vibrator.cpp",
         "VibratorManager.cpp",
         "owt.c",
