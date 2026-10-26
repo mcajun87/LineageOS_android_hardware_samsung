@@ -44,12 +44,10 @@ static std::map<CompositePrimitive, HapticEffectSpec> FF_PRIMITIVE_IDS{
         {CompositePrimitive::LOW_TICK, {119, 20}},
 };
 
-#ifdef VIBRATOR_SUPPORTS_DURATION_AMPLITUDE_CONTROL
-static std::map<EffectStrength, float> DURATION_AMPLITUDE = {
+static const std::map<EffectStrength, float> DURATION_AMPLITUDE = {
         {EffectStrength::LIGHT, DURATION_AMPLITUDE_LIGHT},
         {EffectStrength::MEDIUM, DURATION_AMPLITUDE_MEDIUM},
         {EffectStrength::STRONG, DURATION_AMPLITUDE_STRONG}};
-#endif
 
 static int getIntProperty(const std::string& key, int def) {
     return ::android::base::GetIntProperty(kVibratorPropPrefix + key, def);
@@ -62,6 +60,7 @@ Vibrator::Vibrator(std::shared_ptr<HwApi> hwApi)
     mHasTimedOutIntensity = mHwApi->isAmplitudeControlExist();
     mHasTimedOutEffect = mHwApi->isNodeExist(mHwApi->getCpTriggerIndexNode());
     mHasCpTriggerQueue = mHwApi->isNodeExist(mHwApi->getCpTriggerQueueNode());
+    mSupportsDurationAmplitude = !mHasTimedOutIntensity && !mIsForceFeedbackVibrator;
 
     if (mIsTimedOutVibrator) {
         CP_TRIGGER_EFFECTS[Effect::CLICK].durationMs =
@@ -85,13 +84,10 @@ ndk::ScopedAStatus Vibrator::getCapabilities(int32_t* _aidl_return) {
     *_aidl_return = IVibrator::CAP_ON_CALLBACK | IVibrator::CAP_PERFORM_CALLBACK |
                     IVibrator::CAP_EXTERNAL_CONTROL;
 
-#ifdef VIBRATOR_SUPPORTS_DURATION_AMPLITUDE_CONTROL
-    *_aidl_return |= IVibrator::CAP_AMPLITUDE_CONTROL | IVibrator::CAP_EXTERNAL_AMPLITUDE_CONTROL;
-#else
-    if (mHasTimedOutIntensity)
+    if (mHasTimedOutIntensity || mSupportsDurationAmplitude) {
         *_aidl_return |=
                 IVibrator::CAP_AMPLITUDE_CONTROL | IVibrator::CAP_EXTERNAL_AMPLITUDE_CONTROL;
-#endif
+    }
 
     if (mIsForceFeedbackVibrator) {
         *_aidl_return |= IVibrator::CAP_AMPLITUDE_CONTROL;
@@ -120,9 +116,9 @@ ndk::ScopedAStatus Vibrator::on(int32_t timeoutMs,
         uploadFFEffect({0}, timeoutMs);
     }
 
-#ifdef VIBRATOR_SUPPORTS_DURATION_AMPLITUDE_CONTROL
-    timeoutMs *= mDurationAmplitude;
-#endif
+    if (mSupportsDurationAmplitude) {
+        timeoutMs = static_cast<int32_t>(round(timeoutMs * mDurationAmplitude));
+    }
 
     status = activate(timeoutMs);
 
@@ -188,9 +184,10 @@ ndk::ScopedAStatus Vibrator::perform(Effect effect, EffectStrength strength,
             ms = CP_TRIGGER_EFFECTS[effect].durationMs;
         }
         *_aidl_return = ms;
-#ifdef VIBRATOR_SUPPORTS_DURATION_AMPLITUDE_CONTROL
-        *_aidl_return *= DURATION_AMPLITUDE[strength];
-#endif
+        if (mSupportsDurationAmplitude) {
+            *_aidl_return =
+                    static_cast<int32_t>(round(*_aidl_return * DURATION_AMPLITUDE.at(strength)));
+        }
         return on(ms, callback);
     }
 
@@ -216,20 +213,19 @@ ndk::ScopedAStatus Vibrator::getSupportedEffects(std::vector<Effect>* _aidl_retu
 }
 
 ndk::ScopedAStatus Vibrator::setAmplitude(float amplitude) {
-    uint32_t intensity;
-
     if (amplitude <= 0.0f || amplitude > 1.0f) {
         return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_ILLEGAL_ARGUMENT));
     }
 
-#ifdef VIBRATOR_SUPPORTS_DURATION_AMPLITUDE_CONTROL
-    mDurationAmplitude = durationAmplitude(amplitude);
-#endif
-
     LOG(DEBUG) << "Setting amplitude: " << amplitude;
 
-#ifndef VIBRATOR_SUPPORTS_DURATION_AMPLITUDE_CONTROL
-    intensity = mHwApi->mapAmplitude(amplitude);
+    if (mSupportsDurationAmplitude) {
+        mDurationAmplitude = durationAmplitude(amplitude);
+        LOG(DEBUG) << "Setting duration amplitude factor: " << mDurationAmplitude;
+        return ndk::ScopedAStatus::ok();
+    }
+
+    uint32_t intensity = mHwApi->mapAmplitude(amplitude);
     LOG(DEBUG) << "Setting intensity: " << intensity;
 
     if (mHasTimedOutIntensity) {
@@ -243,7 +239,6 @@ ndk::ScopedAStatus Vibrator::setAmplitude(float amplitude) {
             return ndk::ScopedAStatus::fromExceptionCode(STATUS_UNKNOWN_ERROR);
         return ndk::ScopedAStatus::ok();
     }
-#endif
 
     return ndk::ScopedAStatus::ok();
 }
@@ -539,17 +534,15 @@ int Vibrator::cirrusEffectId(int id) {
     return id;
 }
 
-#ifdef VIBRATOR_SUPPORTS_DURATION_AMPLITUDE_CONTROL
 float Vibrator::durationAmplitude(float amplitude) {
-    if (amplitude == 1) {
+    if (amplitude == 1.0f) {
         return DURATION_AMPLITUDE_STRONG;
-    } else if (amplitude >= 0.5) {
+    } else if (amplitude >= 0.5f) {
         return DURATION_AMPLITUDE_MEDIUM;
     }
 
     return DURATION_AMPLITUDE_LIGHT;
 }
-#endif
 
 }  // namespace vibrator
 }  // namespace hardware
