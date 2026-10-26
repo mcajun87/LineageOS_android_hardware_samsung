@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2021-2026 The LineageOS Project
- *
+ * SPDX-FileCopyrightText: 2021-2026 The LineageOS Project
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,20 +8,13 @@ extern "C" {
 #include "owt.h"
 }
 
-#include <android-base/file.h>
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 
-#include <fcntl.h>
 #include <cmath>
-#include <fstream>
-#include <iostream>
+#include <format>
 #include <map>
 #include <thread>
-
-#include <linux/input.h>
-
-using android::base::ReadFileToString;
 
 namespace aidl {
 namespace android {
@@ -59,39 +51,17 @@ static std::map<EffectStrength, float> DURATION_AMPLITUDE = {
         {EffectStrength::STRONG, DURATION_AMPLITUDE_STRONG}};
 #endif
 
-/*
- * Write value to path and close file.
- */
-template <typename T>
-static ndk::ScopedAStatus writeNode(const std::string& path, const T& value) {
-    std::ofstream node(path);
-    if (!node) {
-        LOG(ERROR) << "Failed to open: " << path;
-        return ndk::ScopedAStatus::fromStatus(STATUS_UNKNOWN_ERROR);
-    }
-
-    LOG(DEBUG) << "writeNode node: " << path << " value: " << value;
-
-    node << value << std::endl;
-    if (!node) {
-        LOG(ERROR) << "Failed to write: " << value;
-        return ndk::ScopedAStatus::fromStatus(STATUS_UNKNOWN_ERROR);
-    }
-
-    return ndk::ScopedAStatus::ok();
-}
-
-static bool nodeExists(const std::string& path) {
-    std::ofstream f(path.c_str());
-    return f.good();
-}
-
 static int getIntProperty(const std::string& key, int def) {
     return ::android::base::GetIntProperty(kVibratorPropPrefix + key, def);
 }
 
-Vibrator::Vibrator() {
-    mIsTimedOutVibrator = nodeExists(VIBRATOR_TIMEOUT_PATH);
+Vibrator::Vibrator(std::shared_ptr<HwApi> hwApi)
+    : mHwApi(hwApi ? std::move(hwApi) : std::make_shared<HwApi>()) {
+    mIsForceFeedbackVibrator = mHwApi->hasForceFeedback();
+    mIsTimedOutVibrator = mHwApi->isVibratorNodeExist() || mHwApi->isUsingLeds();
+    mHasTimedOutIntensity = mHwApi->isAmplitudeControlExist();
+    mHasTimedOutEffect = mHwApi->isNodeExist(mHwApi->getCpTriggerIndexNode());
+
     if (mIsTimedOutVibrator) {
         CP_TRIGGER_EFFECTS[Effect::CLICK].durationMs =
                 getIntProperty("click" + kVibratorPropDuration, 10);
@@ -99,42 +69,17 @@ Vibrator::Vibrator() {
                 getIntProperty("tick" + kVibratorPropDuration, 5);
         CP_TRIGGER_EFFECTS[Effect::TEXTURE_TICK].durationMs =
                 getIntProperty("texture_tick" + kVibratorPropDuration, 5);
-    } else {
-        for (const auto& file : std::filesystem::directory_iterator("/dev/input")) {
-            auto fd = open(file.path().c_str(), O_RDWR);
-            if (fd != -1) {
-                char name[32];
-                ioctl(fd, EVIOCGNAME(sizeof(name)), name);
-                if (strcmp("sec_vibrator_inputff", name) == 0) {
-                    mVibratorFd = fd;
-                    mIsForceFeedbackVibrator = true;
-                    writeNode("/sys/class/sec_vib_inputff/control/use_sep_index", 1);
-                    if (nodeExists(VIBRATOR_FUNCTIONS_PATH)) {
-                        std::string contents;
-                        if (ReadFileToString(VIBRATOR_FUNCTIONS_PATH, &contents)) {
-                            if (contents.find("COMMON_INPUTFF_INTERFACE") != std::string::npos) {
-                                mUsesCommonFFInterface = true;
-                            }
-                            if (contents.find("PRIMITIVE_EFFECT_COMPOSE") != std::string::npos) {
-                                mSupportsPrimitives = true;
-                            }
-                        }
-                    }
-                    break;
-                }
-                close(fd);
-            }
-        }
     }
-    mHasTimedOutIntensity = nodeExists(VIBRATOR_INTENSITY_PATH);
-    mHasTimedOutEffect = nodeExists(VIBRATOR_CP_TRIGGER_PATH);
+
+    if (mIsForceFeedbackVibrator) {
+        mUsesCommonFFInterface = mHwApi->hasFeature(COMMON_INPUTFF_INTERFACE);
+        mSupportsPrimitives = mHwApi->hasFeature(PRIMITIVE_EFFECT_COMPOSE);
+    }
 }
 
 ndk::ScopedAStatus Vibrator::getCapabilities(int32_t* _aidl_return) {
     *_aidl_return = IVibrator::CAP_ON_CALLBACK | IVibrator::CAP_PERFORM_CALLBACK |
-                    IVibrator::CAP_EXTERNAL_CONTROL /*| IVibrator::CAP_COMPOSE_EFFECTS |
-                    IVibrator::CAP_ALWAYS_ON_CONTROL*/
-            ;
+                    IVibrator::CAP_EXTERNAL_CONTROL;
 
 #ifdef VIBRATOR_SUPPORTS_DURATION_AMPLITUDE_CONTROL
     *_aidl_return |= IVibrator::CAP_AMPLITUDE_CONTROL | IVibrator::CAP_EXTERNAL_AMPLITUDE_CONTROL;
@@ -163,7 +108,7 @@ ndk::ScopedAStatus Vibrator::on(int32_t timeoutMs,
     ndk::ScopedAStatus status;
 
     if (mHasTimedOutEffect) {
-        writeNode(VIBRATOR_CP_TRIGGER_PATH, 0);  // Clear all effects
+        mHwApi->writeNode(mHwApi->getCpTriggerIndexNode(), 0);  // Clear all effects
     }
 
     if (mIsForceFeedbackVibrator) {
@@ -216,7 +161,7 @@ ndk::ScopedAStatus Vibrator::perform(Effect effect, EffectStrength strength,
         }
         ms = effectSpec.durationMs;
     } else if (mHasTimedOutEffect && CP_TRIGGER_EFFECTS.contains(effect)) {
-        writeNode(VIBRATOR_CP_TRIGGER_PATH, CP_TRIGGER_EFFECTS[effect].id);
+        mHwApi->writeNode(mHwApi->getCpTriggerIndexNode(), CP_TRIGGER_EFFECTS[effect].id);
         ms = CP_TRIGGER_EFFECTS[effect].durationMs;
     } else {
         if (effect == Effect::DOUBLE_CLICK || effect == Effect::HEAVY_CLICK)
@@ -281,16 +226,13 @@ ndk::ScopedAStatus Vibrator::setAmplitude(float amplitude) {
     LOG(DEBUG) << "Setting intensity: " << intensity;
 
     if (mHasTimedOutIntensity) {
-        return writeNode(VIBRATOR_INTENSITY_PATH, intensity);
+        return mHwApi->setAmplitude(intensity)
+                       ? ndk::ScopedAStatus::ok()
+                       : ndk::ScopedAStatus::fromStatus(STATUS_UNKNOWN_ERROR);
     }
 
     if (mIsForceFeedbackVibrator) {
-        struct input_event event{
-                .type = EV_FF,
-                .code = FF_GAIN,
-                .value = static_cast<__s32>(intensity),
-        };
-        if (write(mVibratorFd, &event, sizeof(event)) == -1)
+        if (!mHwApi->setForceFeedbackAmplitude(intensity))
             return ndk::ScopedAStatus::fromExceptionCode(STATUS_UNKNOWN_ERROR);
         return ndk::ScopedAStatus::ok();
     }
@@ -301,13 +243,15 @@ ndk::ScopedAStatus Vibrator::setAmplitude(float amplitude) {
 
 ndk::ScopedAStatus Vibrator::setExternalControl(bool enabled) {
     if (mEnabled) {
-        LOG(WARNING) << "Setting external control while the vibrator is enabled is "
-                        "unsupported!";
+        LOG(WARNING) << "Setting external control while the vibrator is enabled is unsupported!";
         return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
     }
 
     LOG(INFO) << "ExternalControl: " << mExternalControl << " -> " << enabled;
     mExternalControl = enabled;
+    if (mHwApi->isNodeExist(mHwApi->getExtControlNode())) {
+        mHwApi->writeNode(mHwApi->getExtControlNode(), enabled ? 1 : 0);
+    }
     return ndk::ScopedAStatus::ok();
 }
 
@@ -352,7 +296,7 @@ ndk::ScopedAStatus Vibrator::compose(const std::vector<CompositeEffect>& composi
 
     int32_t maxCompositeSize;
     if (composite.empty() || !getCompositionSizeMax(&maxCompositeSize).isOk() ||
-        composite.size() > maxCompositeSize)
+        composite.size() > static_cast<size_t>(maxCompositeSize))
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
 
     int totalDuration = 0;
@@ -371,8 +315,8 @@ ndk::ScopedAStatus Vibrator::compose(const std::vector<CompositeEffect>& composi
             // No haptic effect. Used to generate extended delays between primitives.
             if (segment.delayMs > 0) {
                 if (mUsesCommonFFInterface) {
-                    common_composite.effects[common_composite.num_of_effects++] = {
-                            0, 0, 0, segment.delayMs, 0};
+                    common_composite.packets[common_composite.count++] = {0, 0, 0, segment.delayMs,
+                                                                          0};
                 } else {
                     owt_effect_str.append(std::format("{} ", segment.delayMs));
                 }
@@ -392,11 +336,10 @@ ndk::ScopedAStatus Vibrator::compose(const std::vector<CompositeEffect>& composi
 
         if (mUsesCommonFFInterface) {
             if (segment.delayMs > 0) {
-                common_composite.effects[common_composite.num_of_effects++] = {0, 0, 0,
-                                                                               segment.delayMs, 0};
+                common_composite.packets[common_composite.count++] = {0, 0, 0, segment.delayMs, 0};
             }
-            common_composite.effects[common_composite.num_of_effects++] = {FF_PERIODIC, id, scale,
-                                                                           primitiveDuration, 0};
+            common_composite.packets[common_composite.count++] = {FF_PERIODIC, id, scale,
+                                                                  primitiveDuration, 0};
         } else {  // Cirrus OWT
             owt_effect_str.append(
                     segment.delayMs == 0
@@ -481,15 +424,12 @@ ndk::ScopedAStatus Vibrator::composePwle(const std::vector<PrimitivePwle>& /*com
 ndk::ScopedAStatus Vibrator::activate(uint32_t timeoutMs) {
     std::lock_guard<std::mutex> lock{mMutex};
     if (mIsTimedOutVibrator) {
-        return writeNode(VIBRATOR_TIMEOUT_PATH, timeoutMs);
+        return (timeoutMs > 0 ? mHwApi->do_on(timeoutMs) : mHwApi->do_off())
+                       ? ndk::ScopedAStatus::ok()
+                       : ndk::ScopedAStatus::fromStatus(STATUS_UNKNOWN_ERROR);
     }
     if (mIsForceFeedbackVibrator) {
-        struct input_event event{
-                .type = EV_FF,
-                .code = 0,
-                .value = timeoutMs != 0,
-        };
-        if (write(mVibratorFd, &event, sizeof(event)) == -1)
+        if (!mHwApi->triggerForceFeedbackVibration(timeoutMs != 0))
             return ndk::ScopedAStatus::fromExceptionCode(STATUS_UNKNOWN_ERROR);
         return ndk::ScopedAStatus::ok();
     }
@@ -497,33 +437,9 @@ ndk::ScopedAStatus Vibrator::activate(uint32_t timeoutMs) {
 }
 
 ndk::ScopedAStatus Vibrator::uploadFFEffect(std::vector<int16_t> effectData, int timeoutMs) {
-    int ret;
-
-    // Remove previously uploaded effect in case it exists
-    ret = ioctl(mVibratorFd, EVIOCRMFF, 0);
-    if (ret == -1) {
-        LOG(WARNING) << "Failed to remove effect";
-    }
-
-    struct ff_effect effect = {
-            .id = -1,
-            .replay.length = static_cast<uint16_t>(timeoutMs),
-    };
-
-    if (mUsesCommonFFInterface && effectData[0] == 0 && effectData.size() <= sizeof(int)) {
-        effect.type = FF_CONSTANT;
-    } else {
-        effect.type = FF_PERIODIC;
-        effect.u.periodic = {
-                .waveform = FF_CUSTOM,
-                .custom_len = static_cast<uint32_t>(effectData.size()),
-                .custom_data = effectData.data(),
-        };
-    }
-
-    ret = ioctl(mVibratorFd, EVIOCSFF, &effect);
-    if (ret == -1) {
-        LOG(ERROR) << "Effect upload failed: " << errno;
+    bool isConstant =
+            (mUsesCommonFFInterface && effectData[0] == 0 && effectData.size() <= sizeof(int));
+    if (!mHwApi->uploadForceFeedbackEffect(effectData, timeoutMs, isConstant)) {
         return ndk::ScopedAStatus::fromStatus(STATUS_UNKNOWN_ERROR);
     }
     return ndk::ScopedAStatus::ok();
@@ -534,11 +450,11 @@ float Vibrator::strengthToAmplitude(EffectStrength strength, ndk::ScopedAStatus*
 
     switch (strength) {
         case EffectStrength::LIGHT:
-            return AMPLITUDE_LIGHT;
+            return 0.25f;
         case EffectStrength::MEDIUM:
-            return AMPLITUDE_MEDIUM;
+            return 0.5f;
         case EffectStrength::STRONG:
-            return AMPLITUDE_STRONG;
+            return 1.0f;
     }
 
     *status = ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);

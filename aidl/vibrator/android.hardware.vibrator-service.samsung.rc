@@ -1,10 +1,40 @@
 on init
-    chown system system /sys/class/timed_output/vibrator/cp_trigger_index
     chown system system /sys/class/timed_output/vibrator/enable
     chown system system /sys/class/timed_output/vibrator/intensity
+    chown system system /sys/class/timed_output/vibrator/force_touch_intensity
+    chown system system /sys/class/timed_output/vibrator/multi_freq
+    chown system system /sys/class/timed_output/vibrator/haptic_engine
+    chown system system /sys/class/timed_output/vibrator/cp_trigger_index
+    chown system system /sys/class/timed_output/vibrator/cp_trigger_queue
+    chown system system /sys/class/timed_output/vibrator/num_waves
+    chown system system /sys/class/timed_output/vibrator/motor_type
+    chown system system /sys/class/timed_output/vibrator/event_cmd
+    chown system system /sys/class/timed_output/vibrator/pattern_length
+    chown system system /sys/class/timed_output/vibrator/ext_control
+    chown system system /sys/class/timed_output/vibrator/intensities
+    chown system system /sys/class/timed_output/vibrator/haptic_intensities
+    chown system system /sys/class/timed_output/vibrator/asp_enable
+    chown system system /sys/class/timed_output/vibrator/gpio1_fall_index
+    chown system system /sys/class/timed_output/vibrator/gpio1_fall_dig_scale
+    chown system system /sys/class/timed_output/vibrator/gpio1_rise_index
+    chown system system /sys/class/timed_output/vibrator/gpio1_rise_dig_scale
+    chown system system /sys/class/timed_output/vibrator/vibe_state
+    chown system system /sys/class/timed_output/vibrator/fifo
+    chown system system /sys/class/timed_output/vibrator/hybrid_haptic_engine
+
+    chown system system /sys/class/leds/vibrator/activate
+    chown system system /sys/class/leds/vibrator/duration
+    chown system system /sys/class/leds/vibrator/state
+    chown system system /sys/class/leds/vibrator/intensity
+    chown system system /sys/class/leds/vibrator/fifo
+    chown system system /sys/class/leds/vibrator/asp_enable
+    chown system system /sys/class/leds/vibrator/cp_trigger_queue
+
+    chown system system /sys/class/sec_vib_inputff/control/use_sep_index
+    chown system system /sys/class/vib_info_class/vib_support_info/functions
 
 service vendor.vibrator-default /vendor/bin/hw/android.hardware.vibrator-service.samsung
     class hal
     user system
-    group system
+    group system input
     shutdown critical
