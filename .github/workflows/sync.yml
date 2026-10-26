@@ -1,0 +1,55 @@
+name: Rocky7842_android_hardware_samsung
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 每天北京时间早上 8:00 自动运行一次
+  workflow_dispatch: # 支持手动点击 Run workflow 随时运行
+
+jobs:
+  sync_latest_from_upstream:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == github.actor }}
+
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Sync upstream multiple branches
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # 1. 添加原作者 upstream 仓库
+          git remote add upstream https://github.com/LineageOS/android_hardware_samsung.git
+
+          # 2. 获取原作者所有分支的最新更新
+          git fetch upstream
+
+          # 3. 定义你需要同步的两个分支
+          TARGET_BRANCHES=("lineage-24.0")
+
+          # 4. 循环遍历并逐个分支合并推送
+          for branch in "${TARGET_BRANCHES[@]}"; do
+            echo "=========================================="
+            echo "正在同步分支: ${branch}"
+            echo "=========================================="
+
+            # 切换到对应分支（如果本地没有则创建并追踪远程）
+            git checkout -B "${branch}" "origin/${branch}" || git checkout -b "${branch}"
+
+            # 合并原作者的同名分支
+            if git merge "upstream/${branch}" --no-edit; then
+              echo "分支 ${branch} 合并成功，正在推送到你的 Fork 仓库..."
+              git push origin "${branch}"
+            else
+              echo "ERROR: 分支 ${branch} 存在代码冲突，跳过该分支推送，请手动检查。"
+              git merge --abort || true
+            fi
+          done
