@@ -164,9 +164,24 @@ ndk::ScopedAStatus Vibrator::perform(Effect effect, EffectStrength strength,
         mHwApi->writeNode(mHwApi->getCpTriggerIndexNode(), CP_TRIGGER_EFFECTS[effect].id);
         ms = CP_TRIGGER_EFFECTS[effect].durationMs;
     } else {
-        if (effect == Effect::DOUBLE_CLICK || effect == Effect::HEAVY_CLICK)
-            return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
-        ms = CP_TRIGGER_EFFECTS[effect].durationMs;
+        if (effect == Effect::DOUBLE_CLICK) {
+            ms = 134;
+            std::thread([this, callback]() {
+                activate(17);
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                activate(17);
+                if (callback != nullptr) {
+                    callback->onComplete();
+                }
+            }).detach();
+            *_aidl_return = ms;
+            return ndk::ScopedAStatus::ok();
+        }
+        if (effect == Effect::HEAVY_CLICK) {
+            ms = 100;
+        } else {
+            ms = CP_TRIGGER_EFFECTS[effect].durationMs;
+        }
         *_aidl_return = ms;
 #ifdef VIBRATOR_SUPPORTS_DURATION_AMPLITUDE_CONTROL
         *_aidl_return *= DURATION_AMPLITUDE[strength];
@@ -190,20 +205,8 @@ ndk::ScopedAStatus Vibrator::perform(Effect effect, EffectStrength strength,
 }
 
 ndk::ScopedAStatus Vibrator::getSupportedEffects(std::vector<Effect>* _aidl_return) {
-    *_aidl_return = {Effect::CLICK, Effect::TICK, Effect::TEXTURE_TICK};
-
-    if (mHasTimedOutEffect) {
-        for (const auto& effect : CP_TRIGGER_EFFECTS) {
-            _aidl_return->push_back(effect.first);
-        }
-    }
-
-    if (mIsForceFeedbackVibrator) {
-        for (const auto& effect : FF_EFFECT_IDS) {
-            _aidl_return->push_back(effect.first);
-        }
-    }
-
+    *_aidl_return = {Effect::CLICK, Effect::DOUBLE_CLICK, Effect::TICK, Effect::HEAVY_CLICK,
+                     Effect::TEXTURE_TICK};
     return ndk::ScopedAStatus::ok();
 }
 
