@@ -5,12 +5,15 @@
  */
 
 #include "Vibrator.h"
+#include "VibratorManager.h"
 
 #include <android-base/logging.h>
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
 
+using ::aidl::android::hardware::vibrator::IVibratorManager;
 using ::aidl::android::hardware::vibrator::Vibrator;
+using ::aidl::android::hardware::vibrator::VibratorManager;
 
 int main() {
     ABinderProcess_setThreadPoolMaxThreadCount(0);
@@ -19,6 +22,12 @@ int main() {
     const std::string instance = std::string() + Vibrator::descriptor + "/default";
     binder_status_t status =
             AServiceManager_addService(vibrator->asBinder().get(), instance.c_str());
+    CHECK(status == STATUS_OK);
+
+    std::shared_ptr<VibratorManager> vibratorManager =
+            ndk::SharedRefBase::make<VibratorManager>(vibrator);
+    const std::string managerInstance = std::string() + IVibratorManager::descriptor + "/default";
+    status = AServiceManager_addService(vibratorManager->asBinder().get(), managerInstance.c_str());
     CHECK(status == STATUS_OK);
 
     ABinderProcess_joinThreadPool();
