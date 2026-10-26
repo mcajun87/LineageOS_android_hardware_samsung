@@ -223,9 +223,8 @@ ndk::ScopedAStatus Vibrator::setAmplitude(float amplitude) {
 
     LOG(DEBUG) << "Setting amplitude: " << amplitude;
 
-    intensity = amplitude * INTENSITY_MAX;
-
 #ifndef VIBRATOR_SUPPORTS_DURATION_AMPLITUDE_CONTROL
+    intensity = mHwApi->mapAmplitude(amplitude);
     LOG(DEBUG) << "Setting intensity: " << intensity;
 
     if (mHasTimedOutIntensity) {
