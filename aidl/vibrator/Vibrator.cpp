@@ -61,6 +61,7 @@ Vibrator::Vibrator(std::shared_ptr<HwApi> hwApi)
     mIsTimedOutVibrator = mHwApi->isVibratorNodeExist() || mHwApi->isUsingLeds();
     mHasTimedOutIntensity = mHwApi->isAmplitudeControlExist();
     mHasTimedOutEffect = mHwApi->isNodeExist(mHwApi->getCpTriggerIndexNode());
+    mHasCpTriggerQueue = mHwApi->isNodeExist(mHwApi->getCpTriggerQueueNode());
 
     if (mIsTimedOutVibrator) {
         CP_TRIGGER_EFFECTS[Effect::CLICK].durationMs =
@@ -74,6 +75,9 @@ Vibrator::Vibrator(std::shared_ptr<HwApi> hwApi)
     if (mIsForceFeedbackVibrator) {
         mUsesCommonFFInterface = mHwApi->hasFeature(COMMON_INPUTFF_INTERFACE);
         mSupportsPrimitives = mHwApi->hasFeature(PRIMITIVE_EFFECT_COMPOSE);
+    }
+    if (mHasCpTriggerQueue) {
+        mSupportsPrimitives = true;
     }
 }
 
@@ -91,9 +95,10 @@ ndk::ScopedAStatus Vibrator::getCapabilities(int32_t* _aidl_return) {
 
     if (mIsForceFeedbackVibrator) {
         *_aidl_return |= IVibrator::CAP_AMPLITUDE_CONTROL;
-        if (mSupportsPrimitives) {
-            *_aidl_return |= IVibrator::CAP_COMPOSE_EFFECTS;
-        }
+    }
+
+    if (mSupportsPrimitives) {
+        *_aidl_return |= IVibrator::CAP_COMPOSE_EFFECTS;
     }
 
     return ndk::ScopedAStatus::ok();
@@ -261,7 +266,11 @@ ndk::ScopedAStatus Vibrator::getCompositionDelayMax(int32_t* _aidl_return) {
     if (!mSupportsPrimitives)
         return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 
-    *_aidl_return = (mUsesCommonFFInterface ? COMMON_MAX_COMPOSE_DELAY : WT_MAX_DELAY);
+    if (mIsForceFeedbackVibrator) {
+        *_aidl_return = (mUsesCommonFFInterface ? COMMON_MAX_COMPOSE_DELAY : WT_MAX_DELAY);
+    } else {
+        *_aidl_return = COMPOSITION_DELAY_MAX_MS;
+    }
     return ndk::ScopedAStatus::ok();
 }
 
@@ -269,7 +278,12 @@ ndk::ScopedAStatus Vibrator::getCompositionSizeMax(int32_t* _aidl_return) {
     if (!mSupportsPrimitives)
         return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 
-    *_aidl_return = (mUsesCommonFFInterface ? COMMON_MAX_COMPOSE_EFFECT / 2 : WT_MAX_SECTIONS - 1);
+    if (mIsForceFeedbackVibrator) {
+        *_aidl_return =
+                (mUsesCommonFFInterface ? COMMON_MAX_COMPOSE_EFFECT / 2 : WT_MAX_SECTIONS - 1);
+    } else {
+        *_aidl_return = COMPOSITION_SIZE_MAX;
+    }
     return ndk::ScopedAStatus::ok();
 }
 
@@ -301,11 +315,53 @@ ndk::ScopedAStatus Vibrator::compose(const std::vector<CompositeEffect>& composi
         composite.size() > static_cast<size_t>(maxCompositeSize))
         return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
 
+    int32_t maxDelay;
+    getCompositionDelayMax(&maxDelay);
+
+    if (mHasCpTriggerQueue && !mIsForceFeedbackVibrator) {
+        std::string sequence;
+        int32_t totalDurationMs = 0;
+
+        for (size_t i = 0; i < composite.size(); ++i) {
+            const auto& effect = composite[i];
+            if (effect.delayMs > maxDelay || effect.delayMs < 0) {
+                return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+            }
+            if (effect.scale < 0.0f || effect.scale > 1.0f) {
+                return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);
+            }
+            int32_t primDuration = 0;
+            auto status = getPrimitiveDuration(effect.primitive, &primDuration);
+            if (!status.isOk()) {
+                return status;
+            }
+            totalDurationMs += effect.delayMs + primDuration;
+            if (effect.primitive == CompositePrimitive::NOOP) {
+                continue;
+            }
+            if (!sequence.empty()) {
+                sequence += ",";
+            }
+            sequence += std::to_string(static_cast<int>(effect.primitive)) + "." +
+                        std::to_string(effect.delayMs);
+        }
+
+        if (!mHwApi->writeNodeByStringOnlyForWriting(mHwApi->getCpTriggerQueueNode(), sequence)) {
+            return ndk::ScopedAStatus::fromExceptionCode(EX_SERVICE_SPECIFIC);
+        }
+
+        if (callback != nullptr) {
+            std::thread([totalDurationMs, callback]() {
+                std::this_thread::sleep_for(std::chrono::milliseconds(totalDurationMs));
+                callback->onComplete();
+            }).detach();
+        }
+        return ndk::ScopedAStatus::ok();
+    }
+
     int totalDuration = 0;
     std::string owt_effect_str;
     struct common_inputff_effects common_composite = {};
-    int32_t maxDelay;
-    getCompositionDelayMax(&maxDelay);
     for (auto segment : composite) {
         if (segment.delayMs < 0 || segment.delayMs > maxDelay)
             return ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_ARGUMENT);

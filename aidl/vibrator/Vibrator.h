@@ -95,6 +95,7 @@ class Vibrator : public BnVibrator {
     bool mSupportsPrimitives{false};
     bool mHasTimedOutIntensity;
     bool mHasTimedOutEffect;
+    bool mHasCpTriggerQueue{false};
 };
 
 }  // namespace vibrator
