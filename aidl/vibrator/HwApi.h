@@ -68,6 +68,9 @@ class HwApi {
     bool setAmplitude(int amplitude);
     bool setPerformAmplitude(int amplitude);
 
+    std::vector<int32_t> getCalibratedAmplitudeList();
+    uint32_t mapAmplitude(float amplitude);
+
     bool supportsEnhancedSamsungHapticPattern();
 
     // Force feedback & CommonInputFF methods

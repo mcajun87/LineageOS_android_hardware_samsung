@@ -339,6 +339,72 @@ bool HwApi::setPerformAmplitude(int amplitude) {
     return writeNode(mIntensityNode, amplitude);
 }
 
+std::vector<int32_t> HwApi::getCalibratedAmplitudeList() {
+    std::string content;
+    if (isNodeExist(mHapticIntensitiesNode)) {
+        content = readNode(mHapticIntensitiesNode);
+    } else if (isNodeExist(mIntensitiesNode)) {
+        content = readNode(mIntensitiesNode);
+    }
+
+    if (!content.empty()) {
+        std::vector<int32_t> parsed;
+        std::stringstream ss(content);
+        std::string item;
+        while (std::getline(ss, item, ',')) {
+            item = ::android::base::Trim(item);
+            if (!item.empty()) {
+                try {
+                    parsed.push_back(std::stoi(item));
+                } catch (...) {
+                }
+            }
+        }
+        if (parsed.size() >= 2) {
+            return parsed;
+        }
+    }
+
+    switch (mMotorIndex) {
+        case MOTOR_LINEAR_INDEX:
+        case MOTOR_LINEAR_0832RC:
+        case MOTOR_LINEAR_1040:
+        case MOTOR_LINEAR_RCVMOT:
+        case MOTOR_LINEAR_1030:
+            return {0, 3000, 4000, 6000, 8000, 10000};
+        case MOTOR_COINDC_INDEX:
+        case MOTOR_LINEAR_INDEX_RC:
+        case MOTOR_LINEAR_WATCH:
+            return {0, 2000, 4000, 6000, 8000, 10000};
+        case MOTOR_COINDC_PMIC:
+            return {0, 1000, 5000, 9000};
+        case MOTOR_LINEAR_ACTIVE:
+            return {0, 1500, 4000, 6000, 8000, 10000};
+        default:
+            return {0, 2000, 4000, 6000, 8000, 10000};
+    }
+}
+
+uint32_t HwApi::mapAmplitude(float amplitude) {
+    if (amplitude <= 0.0f) return 0;
+    if (amplitude >= 1.0f) return INTENSITY_MAX;
+
+    std::vector<int32_t> levels = getCalibratedAmplitudeList();
+    if (levels.size() < 2) {
+        return static_cast<uint32_t>(round(amplitude * INTENSITY_MAX));
+    }
+
+    float pos = amplitude * (levels.size() - 1);
+    size_t idx = static_cast<size_t>(pos);
+    if (idx >= levels.size() - 1) {
+        return levels.back();
+    }
+    float frac = pos - idx;
+    float val = levels[idx] + frac * (levels[idx + 1] - levels[idx]);
+    return static_cast<uint32_t>(
+            std::clamp(static_cast<int32_t>(round(val)), INTENSITY_MIN, INTENSITY_MAX));
+}
+
 bool HwApi::supportsEnhancedSamsungHapticPattern() {
     return mMotorIndex == MOTOR_LINEAR_1040 || isHapticEngineNodeExist();
 }
